@@ -1,0 +1,31 @@
+@mixin breakpoint($size) {
+  @media screen and (min-width: $size) {
+    @content;
+  }
+}
+
+@mixin breakpointMax($size) {
+  @media screen and (max-width: $size) {
+    @content;
+  }
+}
+
+@mixin font($size, $lineHeight: 1.2, $font: $mainFontName, $color: inherit, $weight: 400) {
+  font-size: $size;
+  line-height: $lineHeight;
+  font-family: $font;
+  color: $color;
+  font-weight: $weight;
+}
+
+@mixin flex($justify: flex-start, $align: stretch) {
+  display: flex;
+  justify-content: $justify;
+  align-items: $align;
+}
+
+@mixin flexCenter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
