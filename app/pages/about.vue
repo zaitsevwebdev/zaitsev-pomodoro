@@ -7,7 +7,7 @@ useSeoMeta({
 
 <template>
   <AboutProject
-    portfolio-url="ССЫЛКА_НА_ПОРТФОЛИО"
-    support-url="ССЫЛКА_НА_BUY_ME_A_COFFEE"
+    portfolio-url="https://zaitsevwebdevportfolio.vercel.app/"
+    support-url="https://www.buymeacoffee.com/zaitsevwebdev"
   />
 </template>

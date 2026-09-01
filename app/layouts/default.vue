@@ -19,7 +19,7 @@ const {
     <NuxtPage />
 
     <TheFooter
-      portfolio-url="ССЫЛКА_НА_ПОРТФОЛИО"
+      portfolio-url="https://zaitsevwebdevportfolio.vercel.app/"
       github-url="ССЫЛКА_НА_GITHUB"
       support-url="ССЫЛКА_НА_BUY_ME_A_COFFEE"
     />

@@ -95,7 +95,7 @@ const handleThemeToggle = () => {
   z-index: 10;
   width: 100%;
   background: $color-footer;
-  border-bottom: 1px solid $color-text-dark;
+  border-bottom: 1px solid $color-border;
 
   &__container {
     width: 100%;
@@ -129,7 +129,7 @@ const handleThemeToggle = () => {
   }
 
   &__mobile-navigation {
-    margin-top: 7px;
+    margin: 10px 0;
 
     @include breakpoint($tablet) {
       display: none;
