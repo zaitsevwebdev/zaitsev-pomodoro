@@ -3,6 +3,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  site: {
+    url: 'https://zaitsev-pomodoro.vercel.app',
+    name: 'Zaitsev Pomodoro'
+  },
+
   app: {
     head: {
       meta: [
@@ -14,8 +19,9 @@ export default defineNuxtConfig({
     }
   },
   modules: [
-      '@nuxtjs/google-fonts'
-    ],
+    '@nuxtjs/google-fonts',
+    '@nuxtjs/sitemap'
+  ],
 
   googleFonts: {
       families: {
