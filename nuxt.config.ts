@@ -2,6 +2,17 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+
+  app: {
+    head: {
+      meta: [
+        { 
+          name: 'google-site-verification', 
+          content: 'es3wFQRRVZuXBB_-GmmzYS8RTb09NanArkvpmMBamec' 
+        }
+      ]
+    }
+  },
   modules: [
       '@nuxtjs/google-fonts'
     ],
