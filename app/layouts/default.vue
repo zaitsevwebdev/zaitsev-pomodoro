@@ -15,13 +15,13 @@ const {
       :is-dark-theme="isDarkTheme"
       @toggle-theme="handleThemeToggle"
     />
-
+  
     <NuxtPage />
 
     <TheFooter
       portfolio-url="https://zaitsevwebdevportfolio.vercel.app/"
-      github-url="ССЫЛКА_НА_GITHUB"
-      support-url="ССЫЛКА_НА_BUY_ME_A_COFFEE"
+      github-url="https://github.com/zaitsevwebdev"
+      support-url="https://www.buymeacoffee.com/zaitsevwebdev"
     />
   </div>
 </template>
