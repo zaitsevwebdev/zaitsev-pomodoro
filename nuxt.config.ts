@@ -10,11 +10,27 @@ export default defineNuxtConfig({
 
   app: {
     head: {
+      title: 'Zaitsev Pomodoro — Онлайн таймер помодоро для продуктивности',
+      htmlAttrs: {
+        lang: 'ru'
+      },
       meta: [
         { 
           name: 'google-site-verification', 
           content: 'es3wFQRRVZuXBB_-GmmzYS8RTb09NanArkvpmMBamec' 
-        }
+        },
+        { 
+          name: 'description', 
+          content: 'Удобный и минималистичный онлайн таймер Pomodoro для работы и учебы. Настраивайте интервалы фокуса, короткие и длинные перерывы.' 
+        },
+        { 
+          name: 'keywords', 
+          content: 'pomodoro, помодоро таймер, таймер продуктивности, pomodoro timer online, таймер для учебы' 
+        },
+        { property: 'og:title', content: 'Zaitsev Pomodoro — Онлайн таймер помодоро' },
+        { property: 'og:description', content: 'Бесплатный минималистичный таймер фокуса и интервалов работы.' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: 'https://zaitsev-pomodoro.vercel.app' }
       ]
     }
   },
