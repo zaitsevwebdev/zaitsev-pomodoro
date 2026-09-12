@@ -7,9 +7,18 @@ interface TimerOption {
 }
 
 const timerOptions: Record<TimerMode, TimerOption> = {
-  focus: { label: 'Focus', duration: 25 * 60 },
-  shortBreak: { label: 'Short break', duration: 5 * 60 },
-  longBreak: { label: 'Long break', duration: 15 * 60 }
+  focus: {
+    label: 'Focus',
+    duration: 25 * 60,
+  },
+  shortBreak: {
+    label: 'Short break',
+    duration: 5 * 60,
+  },
+  longBreak: {
+    label: 'Long break',
+    duration: 15 * 60,
+  },
 }
 
 const currentMode = ref<TimerMode>('focus')
@@ -20,7 +29,6 @@ const timerElement = ref<HTMLElement | null>(null)
 
 let intervalId: ReturnType<typeof setInterval> | null = null
 let endTimestamp = 0
-let originalDocumentTitle = ''
 
 const activeTimer = computed(() => timerOptions[currentMode.value])
 
@@ -34,15 +42,14 @@ const formattedTime = computed(() => {
 const progress = computed(() => {
   const elapsedSeconds = activeTimer.value.duration - remainingSeconds.value
 
-  return Math.min(100, Math.max(0, (elapsedSeconds / activeTimer.value.duration) * 100))
+  return Math.min(
+    100,
+    Math.max(0, (elapsedSeconds / activeTimer.value.duration) * 100),
+  )
 })
 
-const timerTitle = computed(() => `${formattedTime.value} - ${activeTimer.value.label}`)
-
 const handleStopInterval = () => {
-  if (intervalId === null) {
-    return
-  }
+  if (intervalId === null) return
 
   clearInterval(intervalId)
   intervalId = null
@@ -64,7 +71,9 @@ const handleComplete = () => {
 
   if (currentMode.value === 'focus') {
     const completedSession = focusSession.value
+
     focusSession.value = completedSession === 4 ? 1 : completedSession + 1
+
     handleSetMode(completedSession === 4 ? 'longBreak' : 'shortBreak')
     return
   }
@@ -73,18 +82,18 @@ const handleComplete = () => {
 }
 
 const handleTick = () => {
-  const nextRemainingSeconds = Math.max(0, Math.ceil((endTimestamp - Date.now()) / 1000))
-  remainingSeconds.value = nextRemainingSeconds
+  remainingSeconds.value = Math.max(
+    0,
+    Math.ceil((endTimestamp - Date.now()) / 1000),
+  )
 
-  if (nextRemainingSeconds === 0) {
+  if (remainingSeconds.value === 0) {
     handleComplete()
   }
 }
 
 const handleStart = () => {
-  if (isRunning.value || remainingSeconds.value === 0) {
-    return
-  }
+  if (isRunning.value || remainingSeconds.value === 0) return
 
   isRunning.value = true
   endTimestamp = Date.now() + remainingSeconds.value * 1000
@@ -110,32 +119,44 @@ const handleSkip = () => {
 }
 
 const handleFocusMode = async () => {
-  if (!import.meta.client || !timerElement.value) {
+  if (!import.meta.client || !timerElement.value) return
+
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen()
+      return
+    }
+
+    if (document.fullscreenEnabled) {
+      await timerElement.value.requestFullscreen()
+    }
+  } catch {
     return
   }
-
-  if (document.fullscreenElement) {
-    await document.exitFullscreen()
-    return
-  }
-
-  await timerElement.value.requestFullscreen()
 }
 
 const handleKeydown = (event: KeyboardEvent) => {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
+
   const target = event.target
 
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+  if (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      target.closest('input, textarea, select, button, a, [role="button"]'))
+  ) {
     return
   }
 
   if (event.code === 'Space') {
     event.preventDefault()
     handleToggle()
+    return
   }
 
   if (event.key.toLowerCase() === 'r') {
     handleReset()
+    return
   }
 
   if (event.key.toLowerCase() === 'f') {
@@ -149,31 +170,20 @@ const handleVisibilityChange = () => {
   }
 }
 
-watch(timerTitle, (title) => {
-  if (import.meta.client) {
-    document.title = title
-  }
-})
-
 onMounted(() => {
-  originalDocumentTitle = document.title
   window.addEventListener('keydown', handleKeydown)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
   handleStopInterval()
-  document.title = originalDocumentTitle
   window.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
 <template>
-  <main
-    ref="timerElement"
-    class="pomodoro-timer"
-  >
+  <div ref="timerElement" class="pomodoro-timer">
     <div class="pomodoro-timer__container">
       <div
         class="pomodoro-timer__modes"
@@ -200,12 +210,23 @@ onBeforeUnmount(() => {
         <span
           class="pomodoro-timer__progress"
           :style="{ width: `${progress}%` }"
+          aria-hidden="true"
         />
 
         <div class="pomodoro-timer__mark" aria-hidden="true">Λ</div>
+
         <p class="pomodoro-timer__status">{{ activeTimer.label }}</p>
-        <time class="pomodoro-timer__time">{{ formattedTime }}</time>
-        <p class="pomodoro-timer__session">Session {{ focusSession }} / 4</p>
+
+        <time
+          class="pomodoro-timer__time"
+          :datetime="`PT${remainingSeconds}S`"
+        >
+          {{ formattedTime }}
+        </time>
+
+        <p class="pomodoro-timer__session">
+          Session {{ focusSession }} / 4
+        </p>
       </section>
 
       <div class="pomodoro-timer__controls">
@@ -216,9 +237,27 @@ onBeforeUnmount(() => {
           title="Reset (R)"
           @click="handleReset"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 4V9H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M5.3 15A8 8 0 1 0 6 7.1L4 9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M4 4V9H9"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M5.3 15A8 8 0 1 0 6 7.1L4 9"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
         </button>
 
@@ -238,9 +277,25 @@ onBeforeUnmount(() => {
           title="Skip"
           @click="handleSkip"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 5.5L14 12L5 18.5V5.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
-            <path d="M18 5V19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M5 5.5L14 12L5 18.5V5.5Z"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M18 5V19"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
           </svg>
         </button>
       </div>
@@ -250,20 +305,37 @@ onBeforeUnmount(() => {
         type="button"
         @click="handleFocusMode"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M9 4H4V9M15 4H20V9M9 20H4V15M15 20H20V15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M9 4H4V9M15 4H20V9M9 20H4V15M15 20H20V15"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
+
         Focus mode
       </button>
 
-      <p class="pomodoro-timer__hint">SPACE to start · R to reset · F for focus mode</p>
+      <p class="pomodoro-timer__hint">
+        SPACE to start · R to reset · F for focus mode
+      </p>
     </div>
-  </main>
+  </div>
 </template>
 
 <style scoped lang="scss">
 .pomodoro-timer {
   @include flexCenter;
+
+  box-sizing: border-box;
   width: 100%;
   min-height: calc(100svh - 160px);
   padding: 70px 14px;
@@ -271,6 +343,7 @@ onBeforeUnmount(() => {
 
   &__container {
     @include flexCenter;
+
     width: 100%;
     max-width: 510px;
     flex-direction: column;
@@ -278,6 +351,7 @@ onBeforeUnmount(() => {
 
   &__modes {
     @include flex(center, center);
+
     max-width: 100%;
     gap: 3px;
     padding: 4px;
@@ -295,7 +369,9 @@ onBeforeUnmount(() => {
     border: 0;
     border-radius: 7px;
     cursor: pointer;
+
     @include font(8px, 1.2, $mainFontName, $color-text-secondary, 700);
+
     transition: color 0.2s ease, background 0.2s ease;
 
     &:hover {
@@ -315,7 +391,9 @@ onBeforeUnmount(() => {
 
   &__panel {
     position: relative;
+
     @include flexCenter;
+
     width: 100%;
     min-height: 214px;
     flex-direction: column;
@@ -324,7 +402,9 @@ onBeforeUnmount(() => {
     background: $color-surface;
     border: 1px solid $color-border;
     border-radius: 18px;
-    box-shadow: 0 24px 60px $color-footer, inset 0 0 0 12px $color-bg-secondary;
+    box-shadow:
+      0 24px 60px $color-footer,
+      inset 0 0 0 12px $color-bg-secondary;
 
     @include breakpoint($tablet) {
       min-height: 264px;
@@ -344,6 +424,7 @@ onBeforeUnmount(() => {
 
   &__mark {
     text-shadow: 0 0 12px $color-primary;
+
     @include font(15px, 1, $mainFontName, $color-primary, 800);
   }
 
@@ -351,6 +432,7 @@ onBeforeUnmount(() => {
     margin: 24px 0 0;
     text-transform: uppercase;
     letter-spacing: 3px;
+
     @include font(9px, 1.2, $mainFontName, $color-primary, 800);
   }
 
@@ -359,6 +441,7 @@ onBeforeUnmount(() => {
     margin-top: 8px;
     letter-spacing: -4px;
     font-variant-numeric: tabular-nums;
+
     @include font(64px, 1, $mainFontName, $color-text, 300);
 
     @include breakpoint($tablet) {
@@ -368,17 +451,20 @@ onBeforeUnmount(() => {
 
   &__session {
     margin: 14px 0 0;
+
     @include font(11px, 1.3, $mainFontName, $color-text-secondary, 400);
   }
 
   &__controls {
     @include flex(center, center);
+
     gap: 12px;
     margin-top: 22px;
   }
 
   &__secondary-button {
     @include flexCenter;
+
     width: 38px;
     height: 38px;
     padding: 0;
@@ -408,7 +494,9 @@ onBeforeUnmount(() => {
     border-radius: 10px;
     box-shadow: 0 5px 28px $color-primary-dark;
     cursor: pointer;
+
     @include font(14px, 1.2, $mainFontName, $color-text-dark, 700);
+
     transition: background 0.2s ease, transform 0.2s ease;
 
     @include breakpoint($tablet) {
@@ -431,13 +519,16 @@ onBeforeUnmount(() => {
 
   &__focus-button {
     @include flex(center, center);
+
     gap: 6px;
     margin-top: 20px;
     padding: 4px;
     background: transparent;
     border: 0;
     cursor: pointer;
+
     @include font(9px, 1.2, $mainFontName, $color-text-secondary, 400);
+
     transition: color 0.2s ease;
 
     &:hover {
@@ -455,6 +546,7 @@ onBeforeUnmount(() => {
     margin: 16px 0 0;
     text-align: center;
     letter-spacing: 1px;
+
     @include font(8px, 1.4, $mainFontName, $color-text-secondary, 400);
   }
 
