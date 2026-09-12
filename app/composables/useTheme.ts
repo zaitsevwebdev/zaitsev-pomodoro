@@ -4,21 +4,29 @@ export const useTheme = () => {
   const themeCookie = useCookie<Theme>('theme', {
     default: () => 'dark',
     maxAge: 60 * 60 * 24 * 365,
-    sameSite: 'lax'
+    sameSite: 'lax',
+    path: '/',
   })
 
-  const theme = useState<Theme>('theme', () => themeCookie.value)
+  const theme = useState<Theme>('theme', () =>
+    themeCookie.value === 'light' ? 'light' : 'dark',
+  )
 
   const isDarkTheme = computed(() => theme.value === 'dark')
 
+  const handleSetTheme = (value: Theme) => {
+    theme.value = value
+    themeCookie.value = value
+  }
+
   const handleThemeToggle = () => {
-    theme.value = isDarkTheme.value ? 'light' : 'dark'
-    themeCookie.value = theme.value
+    handleSetTheme(isDarkTheme.value ? 'light' : 'dark')
   }
 
   return {
-    theme,
+    theme, 
     isDarkTheme,
-    handleThemeToggle
+    handleSetTheme,
+    handleThemeToggle,
   }
 }

@@ -1,85 +1,58 @@
 <script setup lang="ts">
-import SiteLogo from '~/common/SiteLogo.vue';
-
-interface Props {
-  isDarkTheme?: boolean
-}
-
-withDefaults(defineProps<Props>(), {
-  isDarkTheme: true
-})
+import SiteLogo from '~/common/SiteLogo.vue'
 
 const emit = defineEmits<{
-  toggleTheme: []
+  openSettings: []
 }>()
-
-const handleThemeToggle = () => {
-  emit('toggleTheme')
-}
 </script>
 
 <template>
   <header class="the-header">
     <div class="the-header__container">
       <div class="the-header__main">
-        <SiteLogo />
+        <div class="the-header__logo">
+          <SiteLogo />
+        </div>
 
         <div class="the-header__desktop-navigation">
           <Navigation />
         </div>
 
-        <button
-          class="the-header__theme-button"
-          type="button"
-          :aria-label="
-            isDarkTheme
-              ? 'Увімкнути світлу тему'
-              : 'Увімкнути темну тему'
-          "
-          @click="handleThemeToggle"
-        >
-          <svg
-            v-if="isDarkTheme"
-            class="the-header__theme-icon"
-            width="17"
-            height="17"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
+        <div class="the-header__actions">
+          <button
+            class="the-header__settings-button"
+            type="button"
+            aria-label="Відкрити налаштування"
+            aria-haspopup="dialog"
+            title="Налаштування"
+            @click="emit('openSettings')"
           >
-            <path
-              d="M20.4 15.1A8.5 8.5 0 0 1 8.9 3.6 8.5 8.5 0 1 0 20.4 15.1Z"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
+            <svg
+              class="the-header__settings-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M9.5 3H14.5L15 5.5L17 6.7L19.4 6L21.9 10.3L20 12L21.9 13.7L19.4 18L17 17.3L15 18.5L14.5 21H9.5L9 18.5L7 17.3L4.6 18L2.1 13.7L4 12L2.1 10.3L4.6 6L7 6.7L9 5.5L9.5 3Z"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
 
-          <svg
-            v-else
-            class="the-header__theme-icon"
-            width="17"
-            height="17"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="4"
-              stroke="currentColor"
-              stroke-width="1.8"
-            />
-            <path
-              d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-            />
-          </svg>
-        </button>
+              <circle
+                cx="12"
+                cy="12"
+                r="3.2"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div class="the-header__mobile-navigation">
@@ -90,83 +63,130 @@ const handleThemeToggle = () => {
 </template>
 
 <style scoped lang="scss">
-.the-header {
-  position: relative;
-  z-index: 10;
-  width: 100%;
-  background: $color-footer;
-  border-bottom: 1px solid $color-border;
-
-  &__container {
-    width: 100%;
-    max-width: $desktopLarge;
-    margin: 0 auto;
-    padding: 10px 14px 0;
-
-    @include breakpoint($tablet) {
-      padding: 0 30px;
-    }
-  }
-
-  &__main {
-    @include flex(space-between, center);
-    width: 100%;
-    min-height: 36px;
-
-    @include breakpoint($tablet) {
-      min-height: 72px;
-    }
-  }
-
-  &__desktop-navigation {
-    display: none;
-
-    @include breakpoint($tablet) {
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-    }
-  }
-
-  &__mobile-navigation {
-    margin: 10px 0;
-
-    @include breakpoint($tablet) {
-      display: none;
-    }
-  }
-
-  &__theme-button {
-    @include flexCenter;
-    width: 32px;
-    height: 32px;
+  .the-header {
+    position: relative;
+    z-index: 10;
     flex-shrink: 0;
-    padding: 0;
+    width: 100%;
     color: $color-text;
-    background: $color-surface;
-    border: 1px solid $color-border;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: color 0.2s ease, border-color 0.2s ease;
+    background: $color-footer;
+    border-bottom: 1px solid $color-border;
 
-    @include breakpoint($tablet) {
-      width: 40px;
-      height: 40px;
+    &,
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
     }
 
-    &:hover {
-      color: $color-primary;
-      border-color: $color-primary;
+    &__container {
+      width: 100%;
+      max-width: $desktopLarge;
+      margin-inline: auto;
+      padding: 12px 16px 0;
+
+      @include breakpoint($tablet) {
+        padding: 0 30px;
+      }
     }
 
-    &:focus-visible {
-      outline: 2px solid $color-accent;
-      outline-offset: 2px;
+    &__main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+      min-height: 44px;
+
+      @include breakpoint($tablet) {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        min-height: 72px;
+        gap: 24px;
+      }
+    }
+
+    &__logo {
+      display: flex;
+      align-items: center;
+      justify-self: start;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    &__desktop-navigation {
+      display: none;
+
+      @include breakpoint($tablet) {
+        display: block;
+        justify-self: center;
+      }
+    }
+
+    &__mobile-navigation {
+      margin-top: 12px;
+      padding-bottom: 12px;
+
+      @include breakpoint($tablet) {
+        display: none;
+      }
+    }
+
+    &__actions {
+      display: flex;
+      align-items: center;
+      justify-self: end;
+    }
+
+    &__settings-button {
+      @include flexCenter;
+
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      color: $color-text;
+      background: $color-surface;
+      border: 1px solid $color-border;
+      border-radius: 12px;
+      cursor: pointer;
+      transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+
+      @media (hover: hover) {
+        &:hover {
+          color: $color-primary;
+          background: $color-pale;
+          border-color: $color-primary;
+
+          .the-header__settings-icon {
+            transform: rotate(30deg);
+          }
+        }
+      }
+
+      &:active {
+        background: $color-pale;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $color-primary;
+        outline-offset: 4px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
+    }
+
+    &__settings-icon {
+      display: block;
+      flex-shrink: 0;
+      transition: transform 0.25s ease;
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
     }
   }
-
-  &__theme-icon {
-    display: block;
-  }
-}
 </style>

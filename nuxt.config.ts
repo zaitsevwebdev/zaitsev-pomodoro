@@ -1,72 +1,100 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+const siteUrl = 'https://zaitsev-pomodoro.vercel.app'
+const siteName = 'Zaitsev.Pomodoro'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+
+  devtools: {
+    enabled: true,
+  },
+
+  ssr: true,
 
   site: {
-    url: 'https://zaitsev-pomodoro.vercel.app',
-    name: 'Zaitsev Pomodoro'
+    url: siteUrl,
+    name: siteName,
   },
 
   app: {
     head: {
-      title: 'Zaitsev Pomodoro — Онлайн таймер помодоро для продуктивности',
+      title: 'Таймер Помодоро онлайн | Zaitsev.Pomodoro',
+
       htmlAttrs: {
-        lang: 'ru'
+        lang: 'uk',
       },
+
       meta: [
-        { 
-          name: 'google-site-verification', 
-          content: 'es3wFQRRVZuXBB_-GmmzYS8RTb09NanArkvpmMBamec' 
+        {
+          name: 'google-site-verification',
+          content: 'es3wFQRRVZuXBB_-GmmzYS8RTb09NanArkvpmMBamec',
         },
-        { 
-          name: 'description', 
-          content: 'Удобный и минималистичный онлайн таймер Pomodoro для работы и учебы. Настраивайте интервалы фокуса, короткие и длинные перерывы.' 
+        {
+          name: 'description',
+          content:
+            'Безкоштовні інструменти для роботи й навчання: таймер Помодоро, секундомір, зворотний відлік і годинник. Налаштування інтервалів і тем оформлення.',
         },
-        { 
-          name: 'keywords', 
-          content: 'pomodoro, помодоро таймер, таймер продуктивности, pomodoro timer online, таймер для учебы' 
+        {
+          property: 'og:site_name',
+          content: siteName,
         },
-        { property: 'og:title', content: 'Zaitsev Pomodoro — Онлайн таймер помодоро' },
-        { property: 'og:description', content: 'Бесплатный минималистичный таймер фокуса и интервалов работы.' },
-        { property: 'og:type', content: 'website' },
-        { property: 'og:url', content: 'https://zaitsev-pomodoro.vercel.app' }
-      ]
-    }
+        {
+          property: 'og:type',
+          content: 'website',
+        },
+        {
+          property: 'og:locale',
+          content: 'uk_UA',
+        },
+        {
+          name: 'twitter:card',
+          content: 'summary',
+        },
+      ],
+
+      link: [
+        {
+          rel: 'icon',
+          type: 'image/svg+xml',
+          href: '/favicon.svg',
+        },
+      ],
+    },
   },
+
   modules: [
     '@nuxtjs/google-fonts',
-    '@nuxtjs/sitemap'
+    '@nuxtjs/sitemap',
   ],
 
   googleFonts: {
-      families: {
-        "Space+Grotesk": [400, 500, 600, 700]
-      }
+    families: {
+      'Space Grotesk': [300, 400, 500, 600, 700],
     },
+    display: 'swap',
+  },
 
-    css: ['~/assets/scss/main.scss'],
+  css: ['~/assets/scss/main.scss'],
 
-    vite: {
-      css: {
-        preprocessorOptions: {
-          scss: {
-            additionalData: `
-              @use "~/assets/scss/global/colors" as *;
-              @use "~/assets/scss/global/themes" as *;
-              @use "~/assets/scss/global/breakpoints" as *;
-              @use "~/assets/scss/global/mixins" as *;
-              @use "~/assets/scss/global/fonts" as *;
-            `
-          }
-        }
-      }
-    },
-
-    components: [
-      {
-        path: '~/components',
-        pathPrefix: false,
+  vite: {
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `
+            @use "~/assets/scss/global/colors" as *;
+            @use "~/assets/scss/global/themes" as *;
+            @use "~/assets/scss/global/breakpoints" as *;
+            @use "~/assets/scss/global/mixins" as *;
+            @use "~/assets/scss/global/fonts" as *;
+          `,
+        },
       },
-    ],
+    },
+  },
+
+  components: [
+    {
+      path: '~/components',
+      pathPrefix: false,
+    },
+  ],
 })

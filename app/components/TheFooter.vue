@@ -1,18 +1,16 @@
 <script setup lang="ts">
-interface Props {
-  portfolioUrl: string
-  githubUrl: string
-  supportUrl: string
+const urls = {
+  portfolioUrl: 'https://zaitsevwebdevportfolio.vercel.app/',
+  githubUrl: 'https://github.com/zaitsevwebdev',
+  supportUrl: 'https://www.buymeacoffee.com/zaitsevwebdev',
 }
-
-defineProps<Props>()
 </script>
 
 <template>
   <footer class="the-footer">
     <div class="the-footer__container">
       <p class="the-footer__author">
-        Created by Zaitsev
+        Created by <span>Zaitsev</span>
       </p>
 
       <nav
@@ -21,7 +19,7 @@ defineProps<Props>()
       >
         <a
           class="the-footer__link"
-          :href="portfolioUrl"
+          :href="urls.portfolioUrl"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -30,7 +28,7 @@ defineProps<Props>()
 
         <a
           class="the-footer__link"
-          :href="githubUrl"
+          :href="urls.githubUrl"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -39,7 +37,7 @@ defineProps<Props>()
 
         <a
           class="the-footer__link"
-          :href="supportUrl"
+          :href="urls.supportUrl"
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -51,59 +49,96 @@ defineProps<Props>()
 </template>
 
 <style scoped lang="scss">
-.the-footer {
-  width: 100%;
-  background: $color-footer;
-  border-top: 1px solid $color-border;
-
-  &__container {
-    display: grid;
+  .the-footer {
+    flex-shrink: 0;
     width: 100%;
-    max-width: $desktopLarge;
-    gap: 18px;
-    margin: 0 auto;
-    padding: 18px 14px;
+    background: $color-footer;
+    border-top: 1px solid $color-border;
+    color: $color-text;
+    font-family: $mainFontName;
 
-    @include breakpoint($mobile) {
-      grid-template-columns: minmax(0, 1fr) auto;
+    &,
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    &__container {
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 40px;
-      padding: 18px 30px;
-    }
-  }
+      width: 100%;
+      max-width: $desktopLarge;
+      gap: 12px;
+      margin-inline: auto;
+      padding: 24px 20px;
 
-  &__author {
-    margin: 0;
-    white-space: nowrap;
-    @include font(8px, 1.4, $mainFontName, $color-text-secondary, 400);
-  }
-
-  &__navigation {
-    display: grid;
-    gap: 10px;
-
-    @include breakpoint($mobile) {
-      @include flex(flex-end, center);
-      gap: 24px;
-    }
-  }
-
-  &__link {
-    width: fit-content;
-    text-decoration: none;
-    @include font(8px, 1.4, $mainFontName, $color-text-secondary, 400);
-    transition: color 0.2s ease;
-
-    &:hover {
-      color: $color-primary;
+      @include breakpoint($tablet) {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 32px;
+        min-height: 80px;
+        padding: 18px 30px;
+      }
     }
 
-    &:focus-visible {
-      color: $color-primary;
-      outline: 2px solid $color-primary;
-      outline-offset: 3px;
-      border-radius: 2px;
+    &__author {
+      margin: 0;
+      color: $color-text-secondary;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: nowrap;
+
+      span {
+        color: $color-text;
+        font-weight: 500;
+      }
+    }
+
+    &__navigation {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 4px 16px;
+
+      @include breakpoint($mobile) {
+        column-gap: 24px;
+      }
+
+      @include breakpoint($tablet) {
+        justify-content: flex-end;
+        column-gap: 28px;
+      }
+    }
+
+    &__link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 8px 2px;
+      color: $color-text;
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $color-primary;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $color-primary;
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
     }
   }
-}
 </style>

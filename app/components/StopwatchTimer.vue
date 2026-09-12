@@ -1,7 +1,6 @@
 <script setup lang="ts">
 interface LapItem {
   id: number
-  number: number
   elapsedMilliseconds: number
 }
 
@@ -13,71 +12,65 @@ const lapsList = ref<HTMLElement | null>(null)
 let animationFrameId: number | null = null
 let startTimestamp = 0
 let nextLapId = 1
-let originalDocumentTitle = ''
 
-const formattedTime = computed(() => {
-  return handleFormatTime(elapsedMilliseconds.value)
-})
-
-const formattedTitleTime = computed(() => {
-  const totalSeconds = Math.floor(elapsedMilliseconds.value / 1000)
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  return [hours, minutes, seconds]
-    .map(value => String(value).padStart(2, '0'))
-    .join(':')
-})
-
-function handleFormatTime(milliseconds: number) {
+function formatTime(milliseconds: number) {
   const hours = Math.floor(milliseconds / 3_600_000)
   const minutes = Math.floor((milliseconds % 3_600_000) / 60_000)
   const seconds = Math.floor((milliseconds % 60_000) / 1000)
-  const millisecondsPart = Math.floor(milliseconds % 1000)
 
-  const mainTime = [hours, minutes, seconds]
+  const main = [hours, minutes, seconds]
     .map(value => String(value).padStart(2, '0'))
     .join(':')
 
-  return `${mainTime}.${String(millisecondsPart).padStart(3, '0')}`
+  const fraction = String(Math.floor(milliseconds % 1000)).padStart(3, '0')
+
+  return { main, fraction }
 }
 
-const handleStopAnimation = () => {
-  if (animationFrameId === null) {
-    return
-  }
+const formattedTime = computed(() => formatTime(elapsedMilliseconds.value))
+
+function formatLap(milliseconds: number) {
+  const { main, fraction } = formatTime(milliseconds)
+  return `${main}.${fraction}`
+}
+
+function readElapsedTime() {
+  return Math.max(0, Date.now() - startTimestamp)
+}
+
+function handleStopAnimation() {
+  if (animationFrameId === null) return
 
   cancelAnimationFrame(animationFrameId)
   animationFrameId = null
 }
 
-const handleTick = () => {
-  elapsedMilliseconds.value = Date.now() - startTimestamp
+function handleTick() {
+  animationFrameId = null
+
+  if (!isRunning.value) return
+
+  elapsedMilliseconds.value = readElapsedTime()
   animationFrameId = requestAnimationFrame(handleTick)
 }
 
-const handleStart = () => {
-  if (isRunning.value) {
-    return
-  }
+function handleStart() {
+  if (isRunning.value) return
 
-  isRunning.value = true
   startTimestamp = Date.now() - elapsedMilliseconds.value
-  animationFrameId = requestAnimationFrame(handleTick)
+  isRunning.value = true
+  handleTick()
 }
 
-const handlePause = () => {
-  if (!isRunning.value) {
-    return
-  }
+function handlePause() {
+  if (!isRunning.value) return
 
-  elapsedMilliseconds.value = Date.now() - startTimestamp
+  elapsedMilliseconds.value = readElapsedTime()
   isRunning.value = false
   handleStopAnimation()
 }
 
-const handleToggle = () => {
+function handleToggle() {
   if (isRunning.value) {
     handlePause()
     return
@@ -86,7 +79,7 @@ const handleToggle = () => {
   handleStart()
 }
 
-const handleReset = () => {
+function handleReset() {
   handleStopAnimation()
   isRunning.value = false
   elapsedMilliseconds.value = 0
@@ -94,38 +87,48 @@ const handleReset = () => {
   nextLapId = 1
 }
 
-const handleLap = async () => {
-  if (!isRunning.value) {
-    return
-  }
+async function handleLap() {
+  if (!isRunning.value) return
 
-  const currentElapsedMilliseconds = Date.now() - startTimestamp
+  const elapsed = readElapsedTime()
+  elapsedMilliseconds.value = elapsed
 
   laps.value.unshift({
-    id: nextLapId,
-    number: nextLapId,
-    elapsedMilliseconds: currentElapsedMilliseconds
+    id: nextLapId++,
+    elapsedMilliseconds: elapsed,
   })
 
-  nextLapId += 1
   await nextTick()
-  lapsList.value?.scrollTo({ top: 0, behavior: 'smooth' })
+
+  if (lapsList.value) {
+    lapsList.value.scrollTop = 0
+  }
 }
 
-const handleKeydown = (event: KeyboardEvent) => {
+function handleKeydown(event: KeyboardEvent) {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey) return
+
   const target = event.target
 
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) {
+  if (
+    target instanceof HTMLElement &&
+    (
+      target.isContentEditable ||
+      target.closest('input, textarea, select, button, a, [role="button"]')
+    )
+  ) {
     return
   }
 
   if (event.code === 'Space') {
     event.preventDefault()
     handleToggle()
+    return
   }
 
   if (event.key.toLowerCase() === 'l') {
     void handleLap()
+    return
   }
 
   if (event.key.toLowerCase() === 'r') {
@@ -133,54 +136,52 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 }
 
-const handleVisibilityChange = () => {
-  if (document.visibilityState === 'visible' && isRunning.value) {
-    elapsedMilliseconds.value = Date.now() - startTimestamp
+function handleVisibilityChange() {
+  handleStopAnimation()
+
+  if (!document.hidden && isRunning.value) {
+    handleTick()
   }
 }
 
-watch(formattedTitleTime, (time) => {
-  if (import.meta.client) {
-    document.title = `${time} - Stopwatch`
-  }
-})
-
 onMounted(() => {
-  originalDocumentTitle = document.title
   window.addEventListener('keydown', handleKeydown)
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
   handleStopAnimation()
-  document.title = originalDocumentTitle
   window.removeEventListener('keydown', handleKeydown)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
 <template>
-  <main class="stopwatch-timer">
+  <div class="stopwatch-timer">
     <div class="stopwatch-timer__container">
-      <header class="stopwatch-timer__header">
-        <p class="stopwatch-timer__eyebrow">Elapsed time</p>
-        <h1 class="stopwatch-timer__title">Stopwatch</h1>
-      </header>
+      <p class="stopwatch-timer__status">
+        <span class="stopwatch-timer__mark" aria-hidden="true">Λ</span>
+        Elapsed time
+      </p>
 
-      <section
-        class="stopwatch-timer__display"
-        aria-label="Поточний час секундоміра"
-      >
-        <time class="stopwatch-timer__time">
-          {{ formattedTime }}
+      <div class="stopwatch-timer__display">
+        <time
+          class="stopwatch-timer__time"
+          :datetime="`PT${(elapsedMilliseconds / 1000).toFixed(3)}S`"
+          aria-live="off"
+        >
+          <span>{{ formattedTime.main }}</span>
+          <span class="stopwatch-timer__fraction">.{{ formattedTime.fraction }}</span>
         </time>
-      </section>
+      </div>
 
       <div class="stopwatch-timer__controls">
         <button
           class="stopwatch-timer__secondary-button"
           type="button"
-          :disabled="elapsedMilliseconds === 0 && laps.length === 0"
+          aria-label="Скинути секундомір і видалити кола"
+          title="Reset (R)"
+          :disabled="!isRunning && elapsedMilliseconds === 0 && !laps.length"
           @click="handleReset"
         >
           Reset
@@ -192,12 +193,38 @@ onBeforeUnmount(() => {
           :aria-label="isRunning ? 'Призупинити секундомір' : 'Запустити секундомір'"
           @click="handleToggle"
         >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              v-if="isRunning"
+              d="M8 5V19M16 5V19"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+            />
+            <path
+              v-else
+              d="M8 5L19 12L8 19V5Z"
+              fill="currentColor"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+          </svg>
+
           {{ isRunning ? 'Pause' : 'Start' }}
         </button>
 
         <button
           class="stopwatch-timer__secondary-button"
           type="button"
+          aria-label="Зафіксувати коло"
+          title="Lap (L)"
           :disabled="!isRunning"
           @click="handleLap"
         >
@@ -205,19 +232,27 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
+      <p class="stopwatch-timer__shortcuts">
+        <span><kbd>Space</kbd> start / pause</span>
+        <span><kbd>L</kbd> lap</span>
+        <span><kbd>R</kbd> reset</span>
+      </p>
+
       <section
         v-if="laps.length"
         class="stopwatch-timer__laps"
-        aria-label="Кола секундоміра"
+        aria-labelledby="stopwatch-laps-title"
       >
-        <div class="stopwatch-timer__laps-header" aria-hidden="true">
-          <span>Lap</span>
-          <span>Time</span>
-        </div>
+        <header class="stopwatch-timer__laps-header">
+          <h2 id="stopwatch-laps-title">Кола</h2>
+          <span>Час від початку</span>
+        </header>
 
         <ol
           ref="lapsList"
           class="stopwatch-timer__laps-list"
+          tabindex="0"
+          aria-label="Збережені кола, найновіші спочатку"
         >
           <li
             v-for="lap in laps"
@@ -225,195 +260,304 @@ onBeforeUnmount(() => {
             class="stopwatch-timer__lap"
           >
             <span class="stopwatch-timer__lap-number">
-              {{ String(lap.number).padStart(2, '0') }}
+              {{ String(lap.id).padStart(2, '0') }}
             </span>
-            <time class="stopwatch-timer__lap-time">
-              {{ handleFormatTime(lap.elapsedMilliseconds) }}
+
+            <time :datetime="`PT${(lap.elapsedMilliseconds / 1000).toFixed(3)}S`">
+              {{ formatLap(lap.elapsedMilliseconds) }}
             </time>
           </li>
         </ol>
       </section>
-
-      <p class="stopwatch-timer__hint">
-        <span class="stopwatch-timer__hint-accent">Phase 2</span>
-        Smart laps will categorize coding, design, research and debugging.
-      </p>
     </div>
-  </main>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.stopwatch-timer {
-  @include flexCenter;
-  width: 100%;
-  min-height: calc(100svh - 160px);
-  padding: 76px 8px;
-  background: $color-bg;
-
-  &__container {
+  .stopwatch-timer {
     @include flexCenter;
+
+    flex: 1;
     width: 100%;
-    max-width: 602px;
-    flex-direction: column;
-  }
-
-  &__header {
-    text-align: center;
-  }
-
-  &__eyebrow {
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    @include font(9px, 1.2, $mainFontName, $color-primary, 800);
-  }
-
-  &__title {
-    margin: 14px 0 0;
-    @include font(14px, 1.2, $mainFontName, $color-text-secondary, 400);
-  }
-
-  &__display {
-    @include flexCenter;
-    width: 100%;
-    min-height: 136px;
-    margin-top: 26px;
-    border-top: 1px solid $color-border;
-    border-bottom: 1px solid $color-border;
+    min-width: 0;
+    padding: 40px 0;
+    background: $color-bg;
+    color: $color-text;
+    font-family: $mainFontName;
 
     @include breakpoint($tablet) {
-      min-height: 156px;
-    }
-  }
-
-  &__time {
-    display: block;
-    white-space: nowrap;
-    letter-spacing: -3px;
-    font-variant-numeric: tabular-nums;
-    @include font(32px, 1, $mainFontName, $color-text, 300);
-
-    @include breakpoint($mobile) {
-      @include font(56px, 1, $mainFontName, $color-text, 300);
+      padding-block: 48px;
     }
 
-    @include breakpoint($tablet) {
-      @include font(72px, 1, $mainFontName, $color-text, 300);
+    &,
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
     }
-  }
 
-  &__controls {
-    display: grid;
-    grid-template-columns: 62px 126px 62px;
-    align-items: center;
-    gap: 10px;
-    margin-top: 22px;
-  }
+    &__container {
+      @include flexCenter;
 
-  &__secondary-button {
-    padding: 10px 4px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 5px;
-    cursor: pointer;
-    @include font(12px, 1.2, $mainFontName, $color-text-secondary, 400);
-    transition: color 0.2s ease, border-color 0.2s ease;
+      flex-direction: column;
+      width: 100%;
+      max-width: 800px;
+      min-width: 0;
+    }
 
-    &:hover:not(:disabled) {
+    &__status {
+      @include flex(center, center);
+
+      gap: 10px;
+      margin: 0;
+      color: $color-primary;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 1.5;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+
+      @include breakpoint($tablet) {
+        font-size: 11px;
+      }
+    }
+
+    &__mark {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    &__display {
+      width: 100%;
+      margin-top: 20px;
+      text-align: center;
+      scrollbar-width: thin;
+      scrollbar-color: $color-border $color-bg;
+
+      @include breakpoint($tablet) {
+        margin-top: 24px;
+      }
+    }
+
+    &__time {
+      display: inline-flex;
+      align-items: baseline;
+      white-space: nowrap;
+      font-size: 40px;
+      font-weight: 300;
+      line-height: 1.2;
+      letter-spacing: -0.045em;
+      font-variant-numeric: tabular-nums;
+
+      @include breakpoint($mobile) {
+        font-size: 60px;
+      }
+
+      @include breakpoint($tabletSmall) {
+        font-size: 80px;
+      }
+
+      @include breakpoint($tablet) {
+        font-size: 96px;
+      }
+
+      @include breakpoint($tabletLandscape) {
+        font-size: 112px;
+      }
+    }
+
+    &__fraction {
+      color: $color-text-secondary;
+      font-size: 0.45em;
+      letter-spacing: -0.02em;
+    }
+
+    &__controls {
+      display: grid;
+      grid-template-columns: 60px 132px 60px;
+      align-items: center;
+      gap: 10px;
+      margin-top: 32px;
+
+      @include breakpoint($mobile) {
+        grid-template-columns: 68px 156px 68px;
+        gap: 14px;
+      }
+
+      @include breakpoint($tablet) {
+        margin-top: 36px;
+      }
+    }
+
+    &__secondary-button {
+      min-height: 46px;
+      padding: 10px 6px;
       color: $color-text;
-      border-color: $color-primary;
+      background: $color-surface;
+      border: 1px solid $color-border;
+      border-radius: 14px;
+      font: inherit;
+      font-size: 12px;
+      line-height: 1.5;
+      cursor: pointer;
+      transition:
+        color 0.2s ease,
+        border-color 0.2s ease;
+
+      &:hover:not(:disabled) {
+        color: $color-primary;
+        border-color: $color-primary;
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+      }
     }
 
-    &:focus-visible {
+    &__primary-button {
+      @include flex(center, center);
+
+      gap: 10px;
+      min-height: 52px;
+      padding: 14px 18px;
+      color: $color-text-dark;
+      background: $color-primary;
+      border: 0;
+      border-radius: 16px;
+      font: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.4;
+      cursor: pointer;
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease;
+
+      @include breakpoint($tablet) {
+        min-height: 56px;
+      }
+
+      @media (hover: hover) {
+        &:hover {
+          background: $color-primary-dark;
+          transform: translateY(-2px);
+        }
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        transition: none;
+
+        &:hover {
+          transform: none;
+        }
+      }
+    }
+
+    &__shortcuts {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 14px;
+      margin: 24px 0 0;
+      color: $color-text-secondary;
+      font-size: 10px;
+      line-height: 1.6;
+
+      span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      kbd {
+        padding: 2px 5px;
+        color: $color-text;
+        background: $color-surface;
+        border: 1px solid $color-border;
+        border-radius: 4px;
+        font: inherit;
+      }
+    }
+
+    &__laps {
+      width: 100%;
+      max-width: 500px;
+      margin-top: 32px;
+      padding: 8px 14px;
+      background: $color-surface;
+      border: 1px solid $color-border;
+      border-radius: 18px;
+
+      @include breakpoint($tablet) {
+        padding-inline: 20px;
+      }
+    }
+
+    &__laps-header {
+      @include flex(space-between, center);
+
+      gap: 12px;
+      padding: 12px 4px;
+      color: $color-text-secondary;
+      font-size: 11px;
+      line-height: 1.5;
+
+      h2 {
+        margin: 0;
+        color: $color-text;
+        font: inherit;
+        font-weight: 600;
+      }
+    }
+
+    &__laps-list {
+      max-height: 250px;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+      scrollbar-width: thin;
+      scrollbar-color: $color-border $color-surface;
+    }
+
+    &__lap {
+      @include flex(space-between, center);
+
+      gap: 12px;
+      min-height: 46px;
+      padding: 10px 4px;
+      border-top: 1px solid $color-border;
+      font-size: 13px;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+
+      time {
+        text-align: right;
+        overflow-wrap: anywhere;
+      }
+    }
+
+    &__lap-number {
+      flex-shrink: 0;
+      color: $color-primary;
+      font-weight: 600;
+    }
+
+    button:focus-visible,
+    &__laps-list:focus-visible {
       outline: 2px solid $color-primary;
-      outline-offset: 2px;
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.35;
+      outline-offset: 4px;
     }
   }
-
-  &__primary-button {
-    min-width: 126px;
-    padding: 12px 22px;
-    background: $color-primary;
-    border: 0;
-    border-radius: 9px;
-    box-shadow: 0 8px 28px $color-primary-dark;
-    cursor: pointer;
-    @include font(13px, 1.2, $mainFontName, $color-text-dark, 700);
-    transition: background 0.2s ease, transform 0.2s ease;
-
-    &:hover {
-      background: $color-primary-dark;
-    }
-
-    &:active {
-      transform: translateY(1px);
-    }
-
-    &:focus-visible {
-      outline: 2px solid $color-white;
-      outline-offset: 3px;
-    }
-  }
-
-  &__laps {
-    width: calc(100% - 32px);
-    max-width: 466px;
-    margin-top: 26px;
-    border-top: 1px solid $color-border;
-  }
-
-  &__laps-header {
-    @include flex(space-between, center);
-    padding: 12px 7px 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    @include font(8px, 1.2, $mainFontName, $color-text-secondary, 400);
-  }
-
-  &__laps-list {
-    max-height: 250px;
-    margin: 0;
-    padding: 0;
-    overflow-y: auto;
-    list-style: none;
-    scrollbar-color: $color-border $color-bg;
-    scrollbar-width: thin;
-  }
-
-  &__lap {
-    @include flex(space-between, center);
-    min-height: 39px;
-    padding: 8px 7px;
-    border-top: 1px solid $color-border;
-  }
-
-  &__lap-number {
-    font-variant-numeric: tabular-nums;
-    @include font(12px, 1.2, $mainFontName, $color-text, 500);
-  }
-
-  &__lap-time {
-    font-variant-numeric: tabular-nums;
-    @include font(12px, 1.2, $mainFontName, $color-text, 700);
-  }
-
-  &__hint {
-    margin: 24px 0 0;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    @include font(8px, 1.5, $mainFontName, $color-text-secondary, 400);
-  }
-
-  &__hint-accent {
-    margin-right: 8px;
-    color: $color-primary;
-    font-weight: 800;
-  }
-}
 </style>
